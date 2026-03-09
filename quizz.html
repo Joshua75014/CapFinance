@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+<meta charset="UTF-8">
+<title>Quiz Finance</title>
+<style>
+body {
+    font-family: "Segoe UI", Arial, sans-serif;
+    background: linear-gradient(135deg,#0f172a,#1e3a8a);
+    color: white;
+    text-align: center;
+    padding: 40px;
+    min-height: 100vh;
+}
+
+h1 {
+    margin-bottom: 30px;
+    color: #fefefe;
+    text-shadow: 1px 1px 5px rgba(0,0,0,0.7);
+}
+
+.quiz-container {
+    background: #ffffff;
+    color: #111827;
+    max-width: 900px;
+    margin: auto;
+    padding: 40px;
+    border-radius: 15px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+}
+
+button {
+    padding: 12px 20px;
+    margin: 10px;
+    border: none;
+    border-radius: 8px;
+    background: #2563eb;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+button:hover {
+    transform: scale(1.05);
+    background: #1d4ed8;
+}
+
+.good {
+    background: #22c55e !important;
+    color: white;
+}
+
+.bad {
+    background: #ef4444 !important;
+    color: white;
+}
+
+.progress {
+    height: 12px;
+    background: #e5e7eb;
+    border-radius: 20px;
+    margin-bottom: 30px;
+    overflow: hidden;
+}
+
+#progress-bar {
+    height: 12px;
+    width: 0%;
+    background: #22c55e;
+    border-radius: 20px;
+    transition: 0.4s;
+}
+
+#correction {
+    margin-top: 20px;
+    font-size: 17px;
+}
+
+#score {
+    margin-top: 30px;
+    font-size: 24px;
+    color: #2563eb;
+}
+
+#restart {
+    margin-top: 30px;
+    background: #dc2626;
+}
+
+#restart:hover {
+    background: #b91c1c;
+}
+
+.certificate {
+    margin-top: 40px;
+    padding: 25px;
+    border: 3px solid #2563eb;
+    border-radius: 12px;
+    background: #f8fafc;
+    color: #111827;
+}
+
+select, input[type="text"] {
+    padding: 10px;
+    margin: 10px 0;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    width: 70%;
+    font-size: 16px;
+}
+
+select:focus, input[type="text"]:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 5px rgba(37,99,235,0.5);
+}
+</style>
+</head>
+
+<body>
+
+<h1>Quiz : Testez vos connaissances en Finance</h1>
+
+<div class="quiz-container">
+
+<div class="progress">
+<div id="progress-bar"></div>
+</div>
+
+<div id="question"></div>
+
+<div id="answers"></div>
+
+<p id="correction"></p>
+
+<button id="next">Question suivante</button>
+
+<h2 id="score"></h2>
+
+<div id="certificate"></div>
+
+<button id="restart">Recommencer</button>
+
+</div>
+
+<script>
+// Quiz complet avec tous les correctWords que tu avais mis
+const quiz=[
+{
+type:"buttons",
+question:"La finance sert uniquement à gérer un budget personnel.",
+answers:["Vrai","Faux"],
+correct:1,
+explanation:"La finance sert aussi à investir, financer des projets et analyser les marchés."
+},
+{
+type:"buttons",
+question:"Quelle est la voie a privilegié si l'on veut travailler en finance quantitative ?",
+answers:["Écoles de commerce","Écoles d'ingénieur","BTS Banque","Licence de droit"],
+correct:1,
+explanation:"Les ingénieurs sont très demandés dans les métiers de finance de marchés."
+},
+{
+type:"buttons",
+question:"Quelle spécialité faut il avoir presque absolument gardé en Terminal pour accéder aux métiers financier ?",
+answers:["SES","HLP","Physique Chimie","Mathématiques"],
+correct:3,
+explanation:"Dans 99% des cas la spé maths est nécessaire pour intégrer les prépas ou facs les plus adaptées à la finance."
+},
+{
+type:"buttons",
+question:"Le secteur financier : private equity, consiste à l'acquisition d'entreprise cotée en bourse pour les revendre plus cher.",
+answers:["Vrai","Faux"],
+correct:1,
+explanation:"C'était un piège ! Le private equity consiste à acheter des entreprises NON COTÉES pour les revendre à long terme."
+},
+{
+type:"dropdown",
+question:"Même si l'on a pas fait de prépa, il existe une option pour rejoindre les Grandes Écoles de commerce française (top 5) : laquelle ?",
+answers:["Admission sur titres","Certification Pix","Cap cuisine"],
+correct:"Admission sur titres",
+explanation:"Les admissions sur titre permettent à des étudiants issus d'universités, BTS, DUT, licences, masters, écoles d'ingénieurs, formations internationales, de rejoindre directement le programme Grande École."
+},
+{
+type:"text",
+question:"Donne moi le nom d'une des meilleures écoles ou fac menant à la finance (worldwide).",
+correctWords:["London School of Economics","LSE","University of Oxford","Oxford","University of Cambridge","Cambridge","London Business School","LBS","HEC Paris","HEC","INSEAD","INSEAD","ESSEC Business School","ESSEC","ESCP Business School","ESCP","EDHEC Business School","EDHEC","Bocconi University","Bocconi","University of St. Gallen","St. Gallen","Erasmus University Rotterdam","RSM","IE Business School","IE","IESE Business School","IESE","University of Warwick","Warwick","National University of Singapore","NUS","Hong Kong University of Science and Technology","HKUST","University of Toronto","Toronto","Harvard University","Harvard","Massachusetts Institute of Technology","MIT"],
+explanation:"Exemples : LSE, HEC, Bocconi, MIT et plein d'autres."
+}
+];
+
+let index=0;
+let score=0;
+let answered=false;
+
+const question=document.getElementById("question");
+const answers=document.getElementById("answers");
+const correction=document.getElementById("correction");
+const next=document.getElementById("next");
+
+// Normalisation pour tolérer majuscules et accents
+function normalize(str){
+    return str.normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim().toLowerCase();
+}
+
+function loadQuestion(){
+    answered=false;
+    correction.innerHTML="";
+
+    let q=quiz[index];
+    question.innerHTML="<h2>"+q.question+"</h2>";
+    answers.innerHTML="";
+
+    if(q.type==="buttons"){
+        q.answers.forEach((a,i)=>{
+            let btn=document.createElement("button");
+            btn.innerText=a;
+            btn.onclick=()=>checkAnswer(i,btn);
+            answers.appendChild(btn);
+        });
+    }
+
+    if(q.type==="dropdown"){
+        let select=document.createElement("select");
+        select.id="dropdown";
+        q.answers.forEach(a=>{
+            let opt=document.createElement("option");
+            opt.value=a;
+            opt.text=a;
+            select.appendChild(opt);
+        });
+        answers.appendChild(select);
+
+        let btn=document.createElement("button");
+        btn.innerText="Valider";
+        btn.onclick=checkDropdown;
+        answers.appendChild(btn);
+    }
+
+    if(q.type==="text"){
+        let input=document.createElement("input");
+        input.id="textAnswer";
+        input.placeholder="Votre réponse";
+        answers.appendChild(input);
+
+        let btn=document.createElement("button");
+        btn.innerText="Valider";
+        btn.onclick=checkText;
+        answers.appendChild(btn);
+    }
+
+    updateProgress();
+}
+
+function checkAnswer(i,btn){
+    if(answered) return;
+    let q=quiz[index];
+    if(i===q.correct){
+        score++;
+        btn.classList.add("good");
+    } else {
+        btn.classList.add("bad");
+    }
+    correction.innerHTML=q.explanation;
+    answered=true;
+}
+
+function checkDropdown(){
+    if(answered) return;
+    let value=document.getElementById("dropdown").value;
+    let q=quiz[index];
+    if(value===q.correct){
+        score++;
+        correction.innerHTML="<span class='good'>Bonne réponse</span><br>"+q.explanation;
+    } else {
+        correction.innerHTML="<span class='bad'>Mauvaise réponse</span><br>"+q.explanation;
+    }
+    answered=true;
+}
+
+function checkText(){
+    if(answered) return;
+    let value=normalize(document.getElementById("textAnswer").value);
+    let q=quiz[index];
+    let correct=q.correctWords.some(w=>normalize(w)===value);
+    if(correct){
+        score++;
+        correction.innerHTML="<span class='good'>Bonne réponse</span><br>"+q.explanation;
+    } else {
+        correction.innerHTML="<span class='bad'>Réponse incorrecte</span><br>"+q.explanation;
+    }
+    answered=true;
+}
+
+next.onclick=function(){
+    if(!answered) return;
+    index++;
+    if(index<quiz.length){
+        loadQuestion();
+    } else {
+        showScore();
+    }
+}
+
+function updateProgress(){
+    let percent=(index/quiz.length)*100;
+    document.getElementById("progress-bar").style.width=percent+"%";
+}
+
+function showScore(){
+    question.innerHTML="Quiz terminé";
+    answers.innerHTML="";
+    correction.innerHTML="";
+    next.style.display="none";
+
+    animateScore();
+    showCertificate();
+}
+
+function animateScore(){
+    let display=document.getElementById("score");
+    let current=0;
+    let interval=setInterval(()=>{
+        display.innerHTML="Score : "+current+" / "+quiz.length;
+        if(current===score){
+            clearInterval(interval);
+        }
+        current++;
+    },100);
+}
+
+function showCertificate(){
+    let cert=document.getElementById("certificate");
+    if(score>=5){
+        cert.innerHTML=`
+        <div class="certificate">
+            <h2>Certificat</h2>
+            <p>Vous êtes officiellement</p>
+            <h3>Expert Finance</h3>
+            <p>Score : ${score}/${quiz.length}</p>
+        </div>`;
+    }
+}
+
+document.getElementById("restart").onclick=function(){
+    location.reload();
+}
+
+loadQuestion();
+</script>
+
+</body>
+</html>
